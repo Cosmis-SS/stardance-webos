@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Wildlife Field Scanner</title>
+
+    <style>
+
+        :root {
+
+            --pokedex-red: #dc0a2d;
+
+            --pokedex-dark-red: #8b0000;
+
+            --screen-bg: #000000;
+
+            --text-green: #00ff00;
+
+            --bezel-gray: #dedede;
+
+        }
+
+        body {
+
+            background-color: #222;
+
+            font-family: 'Courier New', Courier, monospace;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            min-height: 100vh;
+
+            margin: 0;
+
+            padding: 20px;
+
+            box-sizing: border-box;
+
+        }
+
+        .pokedex {
+
+            background-color: var(--pokedex-red);
+
+            width: 100%;
+
+            max-width: 450px;
+
+            border-radius: 20px;
+
+            box-shadow: 0 15px 0 var(--pokedex-dark-red), 0 20px 30px rgba(0,0,0,0.5);
+
+            padding: 25px;
+
+            border: 4px solid #333;
+
+            box-sizing: border-box;
+
+        }
+
+        .top-lights {
+
+            display: flex;
+
+            align-items: center;
+
+            margin-bottom: 20px;
+
+            border-bottom: 3px solid var(--pokedex-dark-red);
+
+            padding-bottom: 15px;
+
+        }
+
+        .big-blue-light {
+
+            width: 50px; height: 50px;
+
+            background: radial-gradient(circle, #85e3ff 0%, #00a2ff 70%);
+
+            border-radius: 50%; border: 4px solid white;
+
+            box-shadow: 0 0 10px #00a2ff; margin-right: 15px;
+
+        }
+
+        .small-light { width: 15px; height: 15px; border-radius: 50%; border: 2px solid #333; margin-right: 8px; }
+
+        .light-red    { background-color: #ff0000; }
+
+        .light-yellow { background-color: #ffcc00; }
+
+        .light-green  { background-color: #00ff00; }
+
+        .screen-bezel {
+
+            background-color: var(--bezel-gray);
+
+            border-radius: 10px; padding: 15px 15px 30px 15px;
+
+            border: 3px solid #555; box-sizing: border-box;
+
+        }
+
+        .main-screen {
+
+            background-color: var(--screen-bg);
+
+            width: 100%; height: 280px; border-radius: 5px;
+
+            border: 3px solid #333; overflow: hidden;
+
+            position: relative; display: flex;
+
+            flex-direction: column; justify-content: center; align-items: center;
+
+        }
+
+        video, canvas { width: 100%; height: 100%; object-fit: cover; }
+
+        canvas { display: none; }
+
+        .scan-overlay {
+
+            display: none; position: absolute;
+
+            top: 0; left: 0; width: 100%; height: 100%;
+
+            background: rgba(0, 40, 0, 0.75);
+
+            color: var(--text-green); justify-content: center;
+
+            align-items: center; font-weight: bold; font-size: 1.2rem;
+
+            text-shadow: 0 0 5px var(--text-green);
+
+            text-align: center; padding: 20px; box-sizing: border-box;
+
+        }
+
+
+
+        /* ── Data readout ─────────────────────────────────── */
+
+        .data-display {
+
+            background-color: #1a1a1a;
+
+            color: #fff; padding: 14px; border-radius: 5px;
+
+            margin-top: 20px; border: 3px solid #111;
+
+            min-height: 160px; font-size: 0.82rem; line-height: 1.5;
+
+            overflow-y: auto; max-height: 260px;
+
+        }
+
+        .data-title  { color: #00ffcc; font-size: 1rem; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 1px; }
+
+        .species-common { color: #ffe066; font-size: 1.2rem; font-weight: bold; margin: 0 0 1px 0; }
+
+        .species-sci    { color: #aaa; font-style: italic; font-size: 0.8rem; margin: 0 0 8px 0; }
+
+        .badge-row      { margin-bottom: 8px; }
+
+        .badge {
+
+            display: inline-block; padding: 2px 9px; border-radius: 8px;
+
+            font-size: 0.72rem; font-weight: bold; margin-right: 5px; margin-bottom: 4px;
+
+        }
+
+        /* Class badges */
+
+        .cls-mammal    { background:#8b6914; color:#ffe; }
+
+        .cls-bird      { background:#1a6fa8; color:#e8f4fd; }
+
+        .cls-reptile   { background:#2d7a2d; color:#e8fde8; }
+
+        .cls-amphibian { background:#1a8080; color:#e8fdfd; }
+
+        .cls-fish      { background:#1a4fa8; color:#e8edfd; }
+
+        .cls-insect    { background:#6a7a10; color:#f5fde8; }
+
+        .cls-arachnid  { background:#7a4010; color:#fde8e8; }
+
+        .cls-other     { background:#555; color:#ddd; }
+
+        /* Conservation badges */
+
+        .cs-lc  { background:#2d6a2d; color:#b8fdb8; }   /* Least Concern */
+
+        .cs-nt  { background:#5a7a10; color:#eefdb8; }   /* Near Threatened */
+
+        .cs-vu  { background:#8a6a00; color:#feeeb8; }   /* Vulnerable */
+
+        .cs-en  { background:#8a3a00; color:#fecdaa; }   /* Endangered */
+
+        .cs-cr  { background:#8a0000; color:#feaaaa; }   /* Critically Endangered */
+
+        .cs-ex  { background:#222; color:#999; }         /* Extinct */
+
+        .cs-dd  { background:#444; color:#bbb; }         /* Data Deficient */
+
+
+
+        .stat-row { display: flex; gap: 6px; margin-bottom: 3px; }
+
+        .stat-label { color: #00ccaa; min-width: 72px; flex-shrink: 0; font-size: 0.78rem; }
+
+        .stat-val   { color: #eee; font-size: 0.78rem; }
+
+        .facts-title { color: #00ffcc; font-size: 0.78rem; margin: 8px 0 4px 0; text-transform: uppercase; letter-spacing: 1px; }
+
+        .fact-item  { color: #ccc; font-size: 0.78rem; margin-bottom: 3px; padding-left: 10px; position: relative; }
+
+        .fact-item::before { content: "›"; position: absolute; left: 0; color: #00ffcc; }
+
+
+
+        /* ── Controls ─────────────────────────────────────── */
+
+        .controls { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+
+        .scan-btn {
+
+            background-color: #28a745; color: white; border: 3px solid #1e7e34;
+
+            padding: 12px 30px; font-size: 1.1rem; font-family: inherit; font-weight: bold;
+
+            border-radius: 10px; cursor: pointer; box-shadow: 0 5px 0 #155724; text-transform: uppercase;
+
+        }
+
+        .scan-btn:active   { transform: translateY(4px); box-shadow: 0 1px 0 #155724; }
+
+        .scan-btn:disabled { background-color:#555; border-color:#333; box-shadow:0 5px 0 #222; cursor:not-allowed; opacity:0.6; }
+
+        .d-pad { position: relative; width: 60px; height: 60px; }
+
+        .d-pad-horiz, .d-pad-vert { background-color: #222; position: absolute; border-radius: 3px; }
+
+        .d-pad-horiz { width: 60px; height: 20px; top: 20px; left: 0; }
+
+        .d-pad-vert  { width: 20px; height: 60px; top: 0; left: 20px; }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        .blinking { animation: blink 0.8s infinite; }
+
+    </style>
+
+</head>
+
+<body>
+
+
+
+<div class="pokedex">
+
+    <div class="top-lights">
+
+        <div class="big-blue-light"></div>
+
+        <div class="small-light light-red"></div>
+
+        <div class="small-light light-yellow"></div>
+
+        <div class="small-light light-green"></div>
+
+    </div>
+
+
+
+    <div class="screen-bezel">
+
+        <div class="main-screen">
+
+            <video id="camera-stream" autoplay playsinline muted></video>
+
+            <canvas id="capture-canvas"></canvas>
+
+            <div id="scan-overlay" class="scan-overlay">
+
+                <div class="blinking">IDENTIFYING SPECIES...</div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <div class="data-display" id="pokedex-readout">
+
+        <h3 class="data-title">Wildlife Scanner Ready</h3>
+
+        <p style="color:#aaa; font-size:0.82rem;">Point the camera at an animal and press SCAN to identify the species and get real field data.</p>
+
+    </div>
+
+
+
+    <div class="controls">
+
+        <div style="width:45px;"></div>
+
+        <button class="scan-btn" id="scan-trigger">Scan</button>
+
+        <div class="d-pad"><div class="d-pad-horiz"></div><div class="d-pad-vert"></div></div>
+
+    </div>
+
+</div>
+
+
+
+<script>
+
+    const SCAN_API_URL = "/api/scan";
+
+    const video       = document.getElementById('camera-stream');
+
+    const canvas      = document.getElementById('capture-canvas');
+
+    const scanTrigger = document.getElementById('scan-trigger');
+
+    const scanOverlay = document.getElementById('scan-overlay');
+
+    const readout     = document.getElementById('pokedex-readout');
+
+
+
+    // Map IUCN status strings to CSS classes
+
+    const CS_CLASS = {
+
+        'least concern': 'cs-lc', 'lc': 'cs-lc',
+
+        'near threatened': 'cs-nt', 'nt': 'cs-nt',
+
+        'vulnerable': 'cs-vu', 'vu': 'cs-vu',
+
+        'endangered': 'cs-en', 'en': 'cs-en',
+
+        'critically endangered': 'cs-cr', 'cr': 'cs-cr',
+
+        'extinct': 'cs-ex', 'ex': 'cs-ex',
+
+        'data deficient': 'cs-dd', 'dd': 'cs-dd',
+
+    };
+
+
+
+    const CLS_CLASS = {
+
+        'mammal': 'cls-mammal', 'bird': 'cls-bird', 'reptile': 'cls-reptile',
+
+        'amphibian': 'cls-amphibian', 'fish': 'cls-fish', 'insect': 'cls-insect',
+
+        'arachnid': 'cls-arachnid',
+
+    };
+
+
+
+    async function startCamera() {
+
+        try {
+
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+
+            video.srcObject = stream;
+
+        } catch (err) {
+
+            readout.innerHTML = `<h3 class="data-title" style="color:#f66;">Lens Error</h3><p style="color:#aaa;">Camera access denied. Allow camera permissions and reload.</p>`;
+
+        }
+
+    }
+
+
+
+    scanTrigger.addEventListener('click', async () => {
+
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+
+            readout.innerHTML = `<h3 class="data-title" style="color:#f66;">Camera Not Ready</h3><p style="color:#aaa;">Wait for the camera feed to load, then try again.</p>`;
+
+            return;
+
+        }
+
+
+
+        scanTrigger.disabled = true;
+
+        scanOverlay.style.display = 'flex';
+
+        readout.innerHTML = `<h3 class="data-title">Identifying...</h3><p style="color:#aaa;">Analysing species data...</p>`;
+
+
+
+        // Capture and resize to keep request size reasonable
+
+        const MAX_W = 800;
+
+        let w = video.videoWidth, h = video.videoHeight;
+
+        if (w > MAX_W) { h = Math.round(h * MAX_W / w); w = MAX_W; }
+
+        canvas.width = w; canvas.height = h;
+
+        canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+
+        const base64Img = canvas.toDataURL('image/jpeg', 0.75).split(',')[1];
+
+
+
+        try {
+
+            const response = await fetch(SCAN_API_URL, {
+
+                method: "POST",
+
+                headers: { "Content-Type": "application/json" },
+
+                body: JSON.stringify({ image: base64Img })
+
+            });
+
+
+
+            if (!response.ok) {
+
+                const err = await response.json().catch(() => ({}));
+
+                throw new Error(err?.error?.message || `API error ${response.status}`);
+
+            }
+
+
+
+            const data   = await response.json();
+
+            const result = JSON.parse(data.candidates[0].content.parts[0].text);
+
+
+
+            scanOverlay.style.display = 'none';
+
+            scanTrigger.disabled = false;
+
+
+
+            if (!result.found) {
+
+                readout.innerHTML = `
+
+                    <h3 class="data-title">No Animal Detected</h3>
+
+                    <p style="color:#aaa; font-size:0.82rem;">${result.reason || 'Point the camera at an animal and try again.'}</p>`;
+
+                return;
+
+            }
+
+
+
+            const clsKey = (result.class || '').toLowerCase();
+
+            const csKey  = (result.conservationStatus || '').toLowerCase();
+
+            const clsCls = CLS_CLASS[clsKey] || 'cls-other';
+
+            const csCls  = CS_CLASS[csKey] || 'cs-dd';
+
+
+
+            const factsHTML = (result.facts || []).map(f =>
+
+                `<div class="fact-item">${f}</div>`
+
+            ).join('');
+
+
+
+            readout.innerHTML = `
+
+                <p class="species-common">${result.commonName}</p>
+
+                <p class="species-sci">${result.scientificName}</p>
+
+                <div class="badge-row">
+
+                    <span class="badge ${clsCls}">${result.class}</span>
+
+                    <span class="badge ${csCls}">${result.conservationStatus}</span>
+
+                </div>
+
+                <div class="stat-row"><span class="stat-label">Habitat</span><span class="stat-val">${result.habitat}</span></div>
+
+                <div class="stat-row"><span class="stat-label">Diet</span><span class="stat-val">${result.diet}</span></div>
+
+                <div class="stat-row"><span class="stat-label">Range</span><span class="stat-val">${result.range}</span></div>
+
+                <div class="stat-row"><span class="stat-label">Lifespan</span><span class="stat-val">${result.lifespan}</span></div>
+
+                <div class="stat-row"><span class="stat-label">Size</span><span class="stat-val">${result.size}</span></div>
+
+                ${factsHTML.length ? `<div class="facts-title">Field Notes</div>${factsHTML}` : ''}
+
+            `;
+
+
+
+        } catch (err) {
+
+            scanOverlay.style.display = 'none';
+
+            scanTrigger.disabled = false;
+
+            readout.innerHTML = `<h3 class="data-title" style="color:#f66;">Scan Failed</h3><p style="color:#aaa;">${err.message}</p>`;
+
+        }
+
+    });
+
+
+
+    startCamera();
+
+</script>
+
+</body>
+
+</html> 
+
